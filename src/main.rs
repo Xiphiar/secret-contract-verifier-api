@@ -3,67 +3,15 @@ extern crate rocket;
 
 use std::{collections::HashMap, env, process::Command};
 
-use chrono::prelude::*;
+use displayable::{StatusDisplayable, TaskDisplayable};
+use pueue::{PueueStatus, PueueTaskLog};
 use rocket::form::{self, Error, Form, FromForm};
 use url::Url;
 
 use serde::{Deserialize, Serialize};
 
-#[derive(PartialEq, Clone, Debug, Serialize, Deserialize)]
-pub enum TaskStatus {
-    Queued,
-    Stashed { enqueue_at: Option<DateTime<Local>> },
-    Running,
-    Paused,
-    Done(TaskResult),
-    Locked,
-}
-
-#[derive(PartialEq, Clone, Debug, Serialize, Deserialize)]
-pub enum TaskResult {
-    Success,
-    Failed(i32),
-    FailedToSpawn(String),
-    Killed,
-    Errored,
-    DependencyFailed,
-}
-
-#[derive(PartialEq, Clone, Debug, Serialize, Deserialize)]
-struct Task {
-    id: u32,
-    original_command: String,
-    command: String,
-    path: String,
-    envs: HashMap<String, String>,
-    group: String,
-    dependencies: Vec<u32>,
-    label: Option<String>,
-    status: TaskStatus,
-    prev_status: String,
-    start: Option<DateTime<Local>>,
-    end: Option<DateTime<Local>>,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-struct Status {
-    tasks: HashMap<String, Task>,
-}
-
-#[derive(PartialEq, Clone, Debug, Serialize, Deserialize)]
-struct TaskDisplayable {
-    id: u32,
-    command: String,
-    status: TaskStatus,
-    prev_status: String,
-    start: Option<DateTime<Local>>,
-    end: Option<DateTime<Local>>,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-struct StatusDisplayable {
-    tasks: Vec<TaskDisplayable>,
-}
+mod displayable;
+mod pueue;
 
 fn validate_commit<'v>(commit: &str) -> form::Result<'v, ()> {
     if commit == "HEAD" {
@@ -140,12 +88,6 @@ struct EnqueueTask {
     lcd: String,
 }
 
-#[derive(PartialEq, Clone, Debug, Serialize, Deserialize)]
-struct TaskLog {
-    output: String,
-    task: Task,
-}
-
 #[get("/status")]
 fn get_status() -> String {
     let mut command = Command::new("pueue");
@@ -155,7 +97,7 @@ fn get_status() -> String {
     let stderr = out.stderr;
     println!("{}", std::str::from_utf8(&stderr).unwrap());
     let stdout_str = std::str::from_utf8(&stdout).unwrap();
-    let status: Status = serde_json::from_str(stdout_str).unwrap();
+    let status: PueueStatus = serde_json::from_str(stdout_str).unwrap();
     let tasks = status.tasks;
     let mut tasks_displayable: Vec<TaskDisplayable> = vec![];
     for (_, task) in tasks {
@@ -163,7 +105,7 @@ fn get_status() -> String {
             id: task.id,
             command: task.command,
             status: task.status,
-            prev_status: task.prev_status,
+            created_at: task.created_at,
             start: task.start,
             end: task.end,
         });
@@ -181,13 +123,13 @@ fn get_status_for_id(id: u32) -> String {
     command.arg("log").arg(id.to_string()).arg("--json");
     let out = command.output().unwrap().stdout;
     let out_str = std::str::from_utf8(&out).unwrap();
-    let tasks: HashMap<String, TaskLog> = serde_json::from_str(out_str).unwrap();
+    let tasks: HashMap<String, PueueTaskLog> = serde_json::from_str(out_str).unwrap();
     let task = tasks.get(&id.to_string()).unwrap().task.clone();
     let task_displayable = TaskDisplayable {
         id: task.id,
         command: task.command.clone(),
         status: task.status.clone(),
-        prev_status: task.prev_status.clone(),
+        created_at: task.created_at,
         start: task.start,
         end: task.end,
     };
