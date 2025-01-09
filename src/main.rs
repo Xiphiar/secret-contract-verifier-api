@@ -141,6 +141,7 @@ fn enqueue(task: Form<EnqueueTask>) -> String {
     let mut command = Command::new("pueue");
     command
         .arg("add")
+        .arg("--print-task-id")
         .arg("--")
         .arg("secret-contract-verifier")
         .arg("--repo")
