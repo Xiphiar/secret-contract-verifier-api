@@ -173,8 +173,8 @@ fn get_status() -> String {
     serde_json::to_string(&status_displayable).unwrap()
 }
 
-#[get("/status/<id>")]
-fn get_status_for_id(id: u32) -> String {
+#[get("/status/<chain_id>/<id>")]
+fn get_status_for_id(chain_id: String, id: u32) -> String {
     let mut command = Command::new("pueue");
     command.arg("log").arg(id.to_string()).arg("--json");
     let out = command.output().unwrap().stdout;
@@ -192,8 +192,8 @@ fn get_status_for_id(id: u32) -> String {
     serde_json::to_string(&task_displayable).unwrap()
 }
 
-#[post("/enqueue/<id>", data = "<task>")]
-fn enqueue(id: u16, task: Form<EnqueueTask>) -> String {
+#[post("/enqueue/<chain_id>/<id>", data = "<task>")]
+fn enqueue(chain_id: String, id: u16, task: Form<EnqueueTask>) -> String {
     let mut command = Command::new("pueue");
     command
         .arg("add")
@@ -208,10 +208,10 @@ fn enqueue(id: u16, task: Form<EnqueueTask>) -> String {
         .arg("--chain-id")
         .arg(task.chain_id.to_string())
         .arg("--lcd")
-        .arg(task.lcd.to_string())
+        .arg(task.lcd.to_string());
         // .arg("--require-sudo")
         // .arg("--database_contract")
-        .arg(env::var("MONGODB_URI").unwrap());
+        // .arg(env::var("MONGODB_URI").unwrap());
     let out = command.output().unwrap().stdout;
     format!("{}", std::str::from_utf8(&out).unwrap())
 }
