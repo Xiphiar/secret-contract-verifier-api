@@ -132,6 +132,10 @@ struct EnqueueTask {
     repo: String,
     #[field(default = "HEAD", validate = validate_commit())]
     commit: String,
+    #[field(default = None)]
+    chain_id: String,
+    #[field(default = None)]
+    lcd: String,
 }
 
 #[derive(PartialEq, Clone, Debug, Serialize, Deserialize)]
@@ -194,16 +198,20 @@ fn enqueue(id: u16, task: Form<EnqueueTask>) -> String {
     command
         .arg("add")
         .arg("--")
-        .arg("verify-contract")
+        .arg("secret-contract-verifier")
         .arg("--repo")
         .arg(task.repo.clone())
         .arg("--commit")
         .arg(task.commit.clone())
         .arg("--code-id")
         .arg(id.to_string())
-        .arg("--require-sudo")
-        .arg("--database_contract")
-        .arg(env::var("DATABASE_CONTRACT").unwrap());
+        .arg("--chain-id")
+        .arg(task.chain_id.to_string())
+        .arg("--lcd")
+        .arg(task.lcd.to_string())
+        // .arg("--require-sudo")
+        // .arg("--database_contract")
+        .arg(env::var("MONGODB_URI").unwrap());
     let out = command.output().unwrap().stdout;
     format!("{}", std::str::from_utf8(&out).unwrap())
 }
@@ -221,5 +229,9 @@ fn root() -> String {
 
 #[launch]
 fn rocket() -> _ {
+    let mongo_uri = env::var("MONGODB_URI");
+    if mongo_uri.is_err() {
+        panic!("Environment variable MONGODB_URI is not set!")
+    }
     rocket::build().mount("/", routes![root, get_status, get_status_for_id, enqueue])
 }
