@@ -76,16 +76,10 @@ fn validate_repo<'v>(repo: &str) -> form::Result<'v, ()> {
 
 #[derive(Serialize, Deserialize, Debug, FromForm)]
 struct EnqueueTask {
-    #[field(default = None)]
-    code_id: u16,
     #[field(default = None, validate = validate_repo())]
     repo: String,
     #[field(default = "HEAD", validate = validate_commit())]
     commit: String,
-    #[field(default = None)]
-    chain_id: String,
-    #[field(default = None)]
-    lcd: String,
 }
 
 #[get("/status")]
@@ -147,16 +141,7 @@ fn enqueue(task: Form<EnqueueTask>) -> String {
         .arg("--repo")
         .arg(task.repo.clone())
         .arg("--commit")
-        .arg(task.commit.clone())
-        .arg("--code-id")
-        .arg(task.code_id.to_string())
-        .arg("--chain-id")
-        .arg(task.chain_id.to_string())
-        .arg("--lcd")
-        .arg(task.lcd.to_string());
-        // .arg("--require-sudo")
-        // .arg("--database_contract")
-        // .arg(env::var("MONGODB_URI").unwrap());
+        .arg(task.commit.clone());
     let out = command.output().unwrap().stdout;
     format!("{}", std::str::from_utf8(&out).unwrap())
 }
