@@ -14,12 +14,12 @@ mod displayable;
 mod pueue;
 
 fn validate_commit<'v>(commit: &str) -> form::Result<'v, ()> {
-    if commit == "HEAD" {
+    if commit == "HEAD" || commit.to_lowercase() == "main" || commit.to_lowercase() == "master" {
         return Ok(());
     }
-    if commit.len() < 7 {
+    if commit.len() < 4 {
         return Err(Error::validation(
-            "Commit must be at least 7 characters long".to_string(),
+            "Commit must be at least 4 characters long".to_string(),
         ))?;
     }
     if commit.len() > 40 {
@@ -27,11 +27,11 @@ fn validate_commit<'v>(commit: &str) -> form::Result<'v, ()> {
             "Commit must be at most 40 characters long".to_string(),
         ))?;
     }
-    if !commit.chars().all(|c| c.is_ascii_hexdigit()) {
-        return Err(Error::validation(
-            "Commit must only contain hexdigits".to_string(),
-        ))?;
-    }
+    // if !commit.chars().all(|c| c.is_ascii_hexdigit()) {
+    //     return Err(Error::validation(
+    //         "Commit must only contain hexdigits".to_string(),
+    //     ))?;
+    // }
     Ok(())
 }
 
