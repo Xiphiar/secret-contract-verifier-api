@@ -10,6 +10,7 @@ pub struct TaskDisplayable {
     pub created_at: DateTime<Local>,
     pub start: Option<DateTime<Local>>,
     pub end: Option<DateTime<Local>>,
+    pub output: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]

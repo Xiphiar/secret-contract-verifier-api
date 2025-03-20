@@ -126,6 +126,7 @@ fn get_status() -> String {
             created_at: task.created_at,
             start: task.start,
             end: task.end,
+            output: None,
         });
     }
     tasks_displayable.sort_by(|a, b| a.id.cmp(&b.id));
@@ -142,7 +143,8 @@ fn get_status_for_id(id: u32) -> String {
     let out = command.output().unwrap().stdout;
     let out_str = std::str::from_utf8(&out).unwrap();
     let tasks: HashMap<String, PueueTaskLog> = serde_json::from_str(out_str).unwrap();
-    let task = tasks.get(&id.to_string()).unwrap().task.clone();
+    let task_log = tasks.get(&id.to_string()).unwrap();
+    let task = task_log.task.clone();
     let task_displayable = TaskDisplayable {
         id: task.id,
         command: task.command.clone(),
@@ -150,6 +152,7 @@ fn get_status_for_id(id: u32) -> String {
         created_at: task.created_at,
         start: task.start,
         end: task.end,
+        output: Some(task_log.output.clone()),
     };
     serde_json::to_string(&task_displayable).unwrap()
 }
