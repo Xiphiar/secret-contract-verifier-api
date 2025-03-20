@@ -6,6 +6,7 @@ use std::{collections::HashMap, env, process::Command};
 use displayable::{StatusDisplayable, TaskDisplayable};
 use pueue::{PueueStatus, PueueTaskLog};
 use rocket::form::{self, Error, Form, FromForm};
+use rocket::response::content::RawJson;
 use url::Url;
 
 use serde::{Deserialize, Serialize};
@@ -107,7 +108,7 @@ struct EnqueueTask {
 }
 
 #[get("/status")]
-fn get_status() -> String {
+fn get_status() -> RawJson<String> {
     let mut command = Command::new("pueue");
     command.arg("status").arg("--json");
     let out = command.output().unwrap();
@@ -133,11 +134,11 @@ fn get_status() -> String {
     let status_displayable = StatusDisplayable {
         tasks: tasks_displayable,
     };
-    serde_json::to_string(&status_displayable).unwrap()
+    RawJson(serde_json::to_string(&status_displayable).unwrap())
 }
 
 #[get("/status/<id>")]
-fn get_status_for_id(id: u32) -> String {
+fn get_status_for_id(id: u32) -> RawJson<String> {
     let mut command = Command::new("pueue");
     command.arg("log").arg(id.to_string()).arg("--json");
     let out = command.output().unwrap().stdout;
@@ -154,7 +155,7 @@ fn get_status_for_id(id: u32) -> String {
         end: task.end,
         output: Some(task_log.output.clone()),
     };
-    serde_json::to_string(&task_displayable).unwrap()
+    RawJson(serde_json::to_string(&task_displayable).unwrap())
 }
 
 #[post("/enqueue", data = "<task>")]
