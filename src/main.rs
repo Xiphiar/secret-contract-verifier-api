@@ -102,7 +102,7 @@ struct EnqueueTask {
     repo: String,
     #[field(default = "HEAD", validate = validate_commit())]
     commit: String,
-    #[field(default = None)]
+    #[field(name = "optimizer", default = Option::<String>::None)]
     optimizer: Option<String>,
 }
 
