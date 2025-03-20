@@ -74,12 +74,36 @@ fn validate_repo<'v>(repo: &str) -> form::Result<'v, ()> {
     Ok(())
 }
 
+fn validate_optimizer<'v>(optimizer: &str) -> form::Result<'v, ()> {
+    // Check if optimizer version follows semantic versioning pattern (e.g., 1.0.10)
+    let parts: Vec<&str> = optimizer.split('.').collect();
+    
+    if parts.len() != 3 {
+        return Err(Error::validation(
+            "Optimizer version must be in format x.y.z".to_string(),
+        ))?;
+    }
+    
+    // Validate each part is a number
+    for part in parts {
+        if !part.chars().all(|c| c.is_ascii_digit()) {
+            return Err(Error::validation(
+                "Optimizer version must only contain numbers and dots".to_string(),
+            ))?;
+        }
+    }
+    
+    Ok(())
+}
+
 #[derive(Serialize, Deserialize, Debug, FromForm)]
 struct EnqueueTask {
     #[field(default = None, validate = validate_repo())]
     repo: String,
     #[field(default = "HEAD", validate = validate_commit())]
     commit: String,
+    #[field(default = None)]
+    optimizer: Option<String>,
 }
 
 #[get("/status")]
@@ -142,6 +166,16 @@ fn enqueue(task: Form<EnqueueTask>) -> String {
         .arg(task.repo.clone())
         .arg("--commit")
         .arg(task.commit.clone());
+    
+    // Add optimizer argument if provided
+    if let Some(optimizer) = &task.optimizer {
+        // Validate optimizer version before using it
+        match validate_optimizer(optimizer) {
+            Ok(_) => command.arg("--optimizer").arg(optimizer),
+            Err(_) => return format!("Invalid optimizer version: must be in format x.y.z with numeric values only"),
+        };
+    }
+    
     let out = command.output().unwrap().stdout;
     format!("{}", std::str::from_utf8(&out).unwrap())
 }
